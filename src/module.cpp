@@ -14,8 +14,21 @@
 class SpatialFacetMatchSpy: public Xapian::MatchSpy
 {
 public:
-std::vector<std::string > values;
+    std::vector<std::string > values;
+    std::vector<double> coords[2];
+    std::vector<double> weights;
+    std::vector<int> docids;
+    std::vector<std::string> value1;
 
+
+    void clear()
+    {
+	values.clear();
+	coords[0].clear(); coords[1].clear();
+	weights.clear();
+	docids.clear();
+	value1.clear();
+    }
 virtual void operator()(const Xapian::Document &doc,
                              double wt)
 
@@ -23,10 +36,15 @@ virtual void operator()(const Xapian::Document &doc,
 //  std::cout << "Spy on doc: " << doc.get_docid()<< "[" << wt << "]" << std::endl;
   
   std::stringstream ss;
-  picojson::value coords;
-  picojson::parse(coords,doc.get_value(2));
-  const auto coords_a  = coords.get<picojson::array>();
-   
+  picojson::value vcoords;
+  picojson::parse(vcoords,doc.get_value(2));
+  const auto coords_a  = vcoords.get<picojson::array>();
+  coords[0].push_back(coords_a[0].get<double>());
+  coords[1].push_back(coords_a[1].get<double>());
+  docids.push_back(doc.get_docid());
+  value1.push_back(doc.get_value(1));
+  weights.push_back(wt);
+  
   ss << doc.get_docid() <<  ";" << doc.get_value(1) << ";" << coords_a[0]<<";" << coords_a[1] << ";" << wt;
   
   values.push_back(ss.str());
@@ -56,11 +74,13 @@ public:
 
     }
 
+    
 
     void query(std::string query_string, int first, int max, int check_at_least){
 	Xapian::Enquire enquire(db);
         Xapian::Query query = qp.parse_query(query_string);
 	enquire.set_query(query);
+	spy.clear();
 	enquire.add_matchspy(&spy);
     
 	Xapian::MSet matches = enquire.get_mset(first, max,check_at_least, &rset);
@@ -77,7 +97,7 @@ public:
 
     }
 
-
+    SpatialFacetMatchSpy &getSpy(){ return spy;};
 
     void simple_compile_test(std::string database, std::string query_string ){
      // here has been an RSet
@@ -145,10 +165,31 @@ py::array_t<int> py_multiply(py::array_t<double, py::array::c_style | py::array:
 }
 */
 
+template<typename vtype>
+py::array wrap(vtype v)
+{
+   return py::array(v.size(),v.data()); // does a copy
+}
+
+
 PYBIND11_MODULE(spatialfacet,m) {
     py::class_<SpatialFacetMiner>(m, "SpatialFacetMiner")
     .def(py::init<>())
     .def("add_database", &SpatialFacetMiner::add_database)
     .def("query", &SpatialFacetMiner::query)
-    ;
+    .def("getSpyData", [](SpatialFacetMiner &m){
+	auto &spy = m.getSpy();
+	return py::make_tuple(
+	    wrap(spy.coords[0]),
+	    wrap(spy.coords[1]),
+	    wrap(spy.docids),
+	    wrap(spy.weights)
+	 );
+	 })
+   .def("getSpyStringData",[](SpatialFacetMiner &m){
+      auto &spy = m.getSpy();
+      return py::make_tuple(spy.value1, spy.values);
+
+      });
+    
 }
