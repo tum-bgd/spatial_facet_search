@@ -27,7 +27,7 @@ print(U)
 
 
 s = spatialfacet.SpatialFacetMiner()
-s.add_database("../spatial_facet/NOTES/synthetic/simple","german")
+s.add_database("databases/simple","german")
 s.query("red blue",1,20,1000)
 
 c0, c1, docs,wt = s.getSpyData();
@@ -67,3 +67,5 @@ facet = {
 print(facet)
 
 ## now propose query terms
+out = s.augment("red", [1,2,3], 5)
+print(out)

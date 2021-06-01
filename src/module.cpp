@@ -86,7 +86,7 @@ public:
 	Xapian::MSet matches = enquire.get_mset(first, max,check_at_least, &rset);
 
     // Display the results.
-    cout << matches.get_matches_estimated() << " results found:" << endl;
+    //cout << matches.get_matches_estimated() << " results found:" << endl;
 
     for (Xapian::MSetIterator i = matches.begin(); i != matches.end(); ++i) {
 	cout << i.get_rank() + 1 << ": " << i.get_weight() << " docid=" << *i
@@ -95,6 +95,36 @@ public:
 
 
 
+    }
+
+    // eset query
+    void augment_query_from_documents(std::string query_string, std::vector<int> documents, int n_terms,
+				      std::vector<std::string> &terms, std::vector<double> &weights, std::string &query_out)
+    {
+	std::vector<std::pair<std::string, double>> ret;
+	Xapian::RSet rset;
+	for (auto d: documents)
+	    rset.add_document(d);
+	Xapian::Query query = qp.parse_query(query_string);
+	Xapian::Enquire enquire(db);
+        enquire.set_query(query);
+	Xapian::ESet eset = enquire.get_eset(n_terms, rset);
+
+	Xapian::ESetIterator t;
+	Xapian::Query query2 = query; // copy query and extend
+
+	for (t = eset.begin(); t != eset.end(); ++t) {
+//	    if ((*t)[0] == 'Q') continue; // not a real proposal
+	    //cout << *t << ": weight = " << t.get_weight() << endl;
+	    //esetfile << *t << ";" << t.get_weight() << std::endl;
+	    terms.push_back(*t);
+	    weights.push_back(t.get_weight());
+	    query2 |= Xapian::Query(*t);
+	}
+//	cout << "ESET query is: " << query2.get_description() << endl;
+	query_out = query2.get_description();
+    
+    
     }
 
     SpatialFacetMatchSpy &getSpy(){ return spy;};
@@ -190,6 +220,28 @@ PYBIND11_MODULE(spatialfacet,m) {
       auto &spy = m.getSpy();
       return py::make_tuple(spy.value1, spy.values);
 
-      });
+      })
+
+    .def ("augment",[](SpatialFacetMiner &m, std::string query_string,
+		       py::array_t<double, py::array::c_style | py::array::forcecast> documents,
+		       int n_terms)
+    {
+	    std::vector<int> stl_documents;
+	    auto r = documents.unchecked<1>();
+	    for (py::ssize_t i =0; i < r.shape(0); i++)
+	      stl_documents.push_back(r(i));
+	    std::cout << "Got the data transferred" << std::endl;  
+	    std::vector<string> terms; std::vector<double> weights; std::string query_out;	    
+//    void augment_query_from_documents(std::string query_string, std::vector<int> documents, int n_terms,
+//				      std::vector<std::string> &terms, std::vector<double> &weights, std::string &query_out)
+	    
+	    m.augment_query_from_documents(query_string, stl_documents,n_terms, terms, weights, query_out);
+	   return py::make_tuple(terms, weights, query_out);
+	    
+    });
+
+
+
+      ;
     
 }

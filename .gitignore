@@ -32,3 +32,6 @@
 *.app
 spatialfacet.egg-info/
 test.png
+databases
+clustering-result.png
+.ipynb_checkpoints/
