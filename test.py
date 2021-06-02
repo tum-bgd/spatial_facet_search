@@ -26,6 +26,7 @@ U_minus = Polygon([[-1,0.75],
 print(U)
 
 
+
 s = spatialfacet.SpatialFacetMiner()
 s.add_database("databases/simple","german")
 s.query("red blue",1,20,1000)
@@ -69,3 +70,7 @@ print(facet)
 ## now propose query terms
 out = s.augment("red", [1,2,3], 5)
 print(out)
+
+
+print(s.query_with_data("red green",1,10,1))
+print(s.query("red green",1,10,1))

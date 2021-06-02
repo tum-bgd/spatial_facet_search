@@ -3,7 +3,7 @@ import numpy as np
 import json
 from shapely.geometry import Polygon, Point, shape, mapping
 
-from engine import supervised_spatial_facet
+from engine import supervised_spatial_facet, simple_query
 
 
 # set the project root directory as the static folder, you can set others.
@@ -41,6 +41,18 @@ def supervised_facet():
                                    
     return jsonify(response), 200
 
+@app.route("/query", methods=['POST'])
+def handle_query():
+    print("Data Received: ")
+    print([x for x in request.json])
+    
+    print("Query Computation")
+    query_result = simple_query(request.json["query"], 1,10)
+    print(query_result)
+    
+    response={"query": request.json["query"], "result": query_result}
+                                   
+    return jsonify(response), 200
     
     
 

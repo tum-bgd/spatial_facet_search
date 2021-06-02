@@ -74,28 +74,32 @@ public:
 
     }
 
-    
-
-    void query(std::string query_string, int first, int max, int check_at_least){
+    // ret is get_matches_estimated, rank, weight, docid, data
+    std::tuple<int, std::vector<int>, std::vector<double>, std::vector<unsigned int>, std::vector<std::string>>
+    query(std::string query_string, int first, int max, int check_at_least, bool query_with_data=false){
 	Xapian::Enquire enquire(db);
         Xapian::Query query = qp.parse_query(query_string);
 	enquire.set_query(query);
 	spy.clear();
 	enquire.add_matchspy(&spy);
+
+	Xapian::MSet matches = enquire.get_mset(first, max,check_at_least); // here we had &rset, but I dont want it
+	
+	std::vector<int> ranks;
+	std::vector<double> weights;
+	std::vector<unsigned int> docids;
+	std::vector<std::string> data;
+	for (Xapian::MSetIterator i = matches.begin(); i != matches.end(); ++i) {
+	    ranks.push_back(i.get_rank()+1);
+	    weights.push_back(i.get_weight());
+	    docids.push_back(*i);
+	    if (query_with_data)
+	       data.push_back(i.get_document().get_data());
+	}
+
+	return std::make_tuple(matches.get_matches_estimated(), ranks, weights, docids, data); 
+    }
     
-	Xapian::MSet matches = enquire.get_mset(first, max,check_at_least, &rset);
-
-    // Display the results.
-    //cout << matches.get_matches_estimated() << " results found:" << endl;
-
-    for (Xapian::MSetIterator i = matches.begin(); i != matches.end(); ++i) {
-	cout << i.get_rank() + 1 << ": " << i.get_weight() << " docid=" << *i
-	     << " [" <<  i.get_document().get_data() << "]\n";
-    }
-
-
-
-    }
 
     // eset query
     void augment_query_from_documents(std::string query_string, std::vector<int> documents, int n_terms,
@@ -128,12 +132,6 @@ public:
     }
 
     SpatialFacetMatchSpy &getSpy(){ return spy;};
-
-    void simple_compile_test(std::string database, std::string query_string ){
-     // here has been an RSet
-    // Parse the query string to produce a Xapian::Query object.
-    
-    }
 
 
 };
@@ -206,7 +204,8 @@ PYBIND11_MODULE(spatialfacet,m) {
     py::class_<SpatialFacetMiner>(m, "SpatialFacetMiner")
     .def(py::init<>())
     .def("add_database", &SpatialFacetMiner::add_database)
-    .def("query", &SpatialFacetMiner::query)
+    .def("query", [](SpatialFacetMiner &m,std::string query_string, int first, int max, int check_at_least){return m.query(query_string,first,max,check_at_least, false);})
+    .def("query_with_data", [](SpatialFacetMiner &m,std::string query_string, int first, int max, int check_at_least){return m.query(query_string,first,max,check_at_least, true);})
     .def("getSpyData", [](SpatialFacetMiner &m){
 	auto &spy = m.getSpy();
 	return py::make_tuple(
@@ -230,7 +229,7 @@ PYBIND11_MODULE(spatialfacet,m) {
 	    auto r = documents.unchecked<1>();
 	    for (py::ssize_t i =0; i < r.shape(0); i++)
 	      stl_documents.push_back(r(i));
-	    std::cout << "Got the data transferred" << std::endl;  
+	    
 	    std::vector<string> terms; std::vector<double> weights; std::string query_out;	    
 //    void augment_query_from_documents(std::string query_string, std::vector<int> documents, int n_terms,
 //				      std::vector<std::string> &terms, std::vector<double> &weights, std::string &query_out)

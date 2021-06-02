@@ -4,6 +4,20 @@ from matplotlib import pyplot as plt
 from shapely.geometry import Polygon, Point
 
 from sklearn.cluster import DBSCAN, OPTICS
+
+class cfg:
+    databasetw="../contrib/twitter/twitter-h5"
+    database="../contrib/osm"
+
+
+def simple_query(query_string,minresult,maxresult):
+    se = SpatialFacetMiner()
+    se.add_database(cfg.database,"english")
+    matches, ranks, weights, docids, data =  se.query_with_data(query_string,minresult,maxresult,1)
+    return {"num_matches":matches, "ranks": ranks, "weights": weights, "docids" : docids,"data": data}
+
+
+
 def default_facet_plot(se):
     c0, c1, docs,wt = se.getSpyData();
     v1,values = se.getSpyStringData()
