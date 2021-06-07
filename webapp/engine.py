@@ -6,8 +6,8 @@ from shapely.geometry import Polygon, Point
 from sklearn.cluster import DBSCAN, OPTICS
 
 class cfg:
-    databasetw="../contrib/twitter/twitter-h5"
-    database="../contrib/osm"
+    database="../contrib/twitter/twitter-h5"
+    databaseosm="../contrib/osm"
 
 
 def simple_query(query_string,minresult,maxresult):

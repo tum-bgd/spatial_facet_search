@@ -14,8 +14,9 @@ class SimpleClusterConfiguration:
 class AppleOnTwitterConfiguration:
     bounds = [-180,180,-90, 90] # xxyy
     database="contrib/twitter/twitter-h5"
-    step = [10,10]
+    step = [2,1]
     query = "apple"
+    kw = "applehill"
 
 def augment(facetminer, query, documents, n=50, retain_only_real = True):
     "a helper function for simpler query augmentation. Does remove all prefixed terms if wanted and zips results from C library  for a more pythonic user"
@@ -29,7 +30,7 @@ def augment(facetminer, query, documents, n=50, retain_only_real = True):
 def get_facet (c0,c1,U):
     return ([rowid for x,y,rowid in zip(c0,c1,range(c0.shape[0])) if Point([x,y]).within(U)])
 
-def supervised_spatial_facet (se,query, U, first_result=1, last_result=10, min_visits=10000):
+def supervised_spatial_facet (se,query, U, first_result=1, last_result=10, min_visits=1000):
     se.query(query,first_result, last_result, min_visits)
     c0, c1, docs,wt = se.getSpyData();
     the_facet = get_facet(c0,c1,U) # ids of the facet
@@ -51,8 +52,12 @@ if __name__=="__main__":
     # by materializing workload as a list, we waste memory, but we get a max on tqdm for free
     for x,y in tqdm(workload):
         U = Polygon([[x,y],[x+cfg.step[0],y],[x+cfg.step[0],y+cfg.step[1]],[x,y+cfg.step[1]],[x,y]])
+        
         kw, facet, c0,c1, docs, wt= supervised_spatial_facet(s, cfg.query,U)
+        
         if(len(facet) != 0):
-            kw = [(x,y) for x,y in kw if not x  in cfg.query]
-            print("%s; %s; %.2f" %(str(U),str(kw),kw[0][1]), file=f)
+            kw = [(x,y) for x,y in kw if x==cfg.kw]
+            if (len(kw) != 0):
+                print("Found ",kw)
+                print("%s; %s; %.2f" %(str(U),str(kw),kw[0][1]), file=f)
         
