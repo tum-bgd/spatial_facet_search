@@ -8,6 +8,21 @@ MIT License
 var U= 0;
 
 
+function setProgressAnimation(visibility)
+{
+
+    if (visibility)
+    {
+	$(".grayout").show();
+	$("#spinner").show();
+    }else{
+	$(".grayout").hide();
+	$("#spinner").hide();
+    }
+
+}
+
+
 
 function createPolygonFromBounds(latLngBounds) {
        var center = latLngBounds.getCenter()
@@ -47,6 +62,7 @@ function setFacetToView()
 
 
 const query = function(){
+        setProgressAnimation(true);
        $.ajax({
 	   url:"/query",
 	   type:"POST",
@@ -64,13 +80,15 @@ const query = function(){
 	       
 	       message +="<ul>" 
 	       $("#proposed_keywords").html(message)
-	       
+               setProgressAnimation(false);
+
 	       
 	   }});
 }
 
 
 const supervised_facet = function(){
+        setProgressAnimation(true);
        $.ajax({
 	   url:"/supervised_facet",
 	   type:"POST",
@@ -88,7 +106,9 @@ const supervised_facet = function(){
                                             })
               the_text += "</ul>"
 
-              $("#proposed_keywords").html(the_text) //("lala" + data["aug_keywords"]);
+               $("#proposed_keywords").html(the_text) //("lala" + data["aug_keywords"]);
+	       setProgressAnimation(false);
+    
           }
        })
        console.log('planning')
@@ -103,5 +123,7 @@ $(function() {
     var startLine = [[48.142838,11.527362],[48.140833,11.55427]];
     map = L.map('map', {editable: true}).setView(startPoint, 6),
     tilelayer = L.tileLayer('http://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {maxZoom: 20, attribution: 'Data \u00a9 <a href="http://www.openstreetmap.org/copyright"> OpenStreetMap Contributors </a> Tiles \u00a9 HOT'}).addTo(map);
+    setProgressAnimation(false);
 });
+
 
